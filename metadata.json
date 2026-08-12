@@ -1,0 +1,6 @@
+{
+  "name": "SafeReport AI - 공공기관 개인정보 자동 비식별화 및 AI 보고서 생성 솔루션",
+  "description": "공공기관 공무원을 위한 브라우저 단 개인정보 마스킹 및 HWP 공공 보고서 자동 생성 AI 솔루션",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

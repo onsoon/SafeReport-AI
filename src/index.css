@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bs-primary: #0032A0; /* Busan Deep Ocean Blue */
+    --bs-primary-dark: #002273;
+    --bs-secondary: #00A3E0; /* Busan Electric Cyan */
+    --bs-accent: #5B2C6F; /* Busan Vibrant Violet */
+    --bs-bg-main: #F4F7FA; /* Busan Pure Light */
+    --bs-bg-card: #FFFFFF;
+    --bs-text-main: #1A1D20; /* Busan Dark Charcoal */
+    --bs-text-sub: #64748B; /* Busan Cool Gray */
+    --bs-border: #E2E8F0;
+  }
+
+  body {
+    background-color: var(--bs-bg-main);
+    color: var(--bs-text-main);
+    font-family: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+    line-height: 1.6;
+  }
+}
+
+/* Custom Busan Brand Utilities */
+.bg-busan-primary {
+  background-color: #0032A0;
+}
+
+.text-busan-primary {
+  color: #0032A0;
+}
+
+.border-busan-primary {
+  border-color: #0032A0;
+}
+
+.bg-busan-secondary {
+  background-color: #00A3E0;
+}
+
+.text-busan-secondary {
+  color: #00A3E0;
+}
+
+.bg-busan-accent {
+  background-color: #5B2C6F;
+}
+
+.text-busan-accent {
+  color: #5B2C6F;
+}
+
+.bg-busan-gradient {
+  background: linear-gradient(135deg, #0032A0 0%, #00A3E0 100%);
+}
+
+.bg-busan-gradient-accent {
+  background: linear-gradient(135deg, #5B2C6F 0%, #0032A0 100%);
+}
+
+.busan-card {
+  background-color: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 50, 160, 0.05);
+  transition: all 0.2s ease-in-out;
+}
+
+.busan-card:hover {
+  border-color: #00A3E0;
+  box-shadow: 0 8px 24px rgba(0, 50, 160, 0.1);
+}
+
+.busan-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  background-color: rgba(0, 163, 224, 0.12);
+  color: #0032A0;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
