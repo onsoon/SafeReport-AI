@@ -17,16 +17,19 @@ export type MaskingCategory =
   | "address" // 주소
   | "driver_license" // 운전면허번호
   | "bank_account" // 계좌번호/카드번호
-  | "name"; // 이름/성명
+  | "name" // 이름/성명
+  | string; // 커스텀 사용자 정의 카테고리 ID
 
 export interface MaskingRule {
-  id: MaskingCategory;
+  id: string;
   name: string;
   description: string;
   patternName: string;
   enabled: boolean;
   maskingCharacter: string;
   replacementExample: string;
+  isCustom?: boolean;
+  regexPattern?: string; // 정규식 패턴 문자열
 }
 
 export interface DetectedPII {
@@ -43,7 +46,7 @@ export interface MaskingStats {
   totalRows: number;
   totalCols: number;
   piiCount: number;
-  countsByCategory: Record<MaskingCategory, number>;
+  countsByCategory: Record<string, number>;
   riskScore: "안전" | "주의" | "경고" | "위험";
 }
 

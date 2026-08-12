@@ -166,12 +166,17 @@ export function processDataSet(
     };
   }
 
-  const enabledRulesMap = new Map<MaskingCategory, boolean>();
+  const enabledRulesMap = new Map<string, boolean>();
   rules.forEach((r) => enabledRulesMap.set(r.id, r.enabled));
+
+  // Extract enabled custom rules with valid regex
+  const customRules = rules.filter(
+    (r) => r.isCustom && r.enabled && r.regexPattern && r.regexPattern.trim().length > 0
+  );
 
   const headers = Object.keys(rawRows[0] || {});
   const detectedPIIs: DetectedPII[] = [];
-  const countsByCategory: Record<MaskingCategory, number> = {
+  const countsByCategory: Record<string, number> = {
     rrn: 0,
     phone: 0,
     email: 0,
@@ -181,8 +186,14 @@ export function processDataSet(
     name: 0,
   };
 
+  rules.forEach((r) => {
+    if (!countsByCategory[r.id]) {
+      countsByCategory[r.id] = 0;
+    }
+  });
+
   const maskedRows: Record<string, any>[] = [];
-  const columnPIIMap = new Map<string, Set<MaskingCategory>>();
+  const columnPIIMap = new Map<string, Set<string>>();
 
   headers.forEach((col) => columnPIIMap.set(col, new Set()));
 
@@ -197,7 +208,7 @@ export function processDataSet(
       // 1. RRN Check
       if (enabledRulesMap.get("rrn") && REGEX_PATTERNS.rrn.test(cellValue)) {
         const masked = maskRRN(cellValue);
-        countsByCategory.rrn++;
+        countsByCategory.rrn = (countsByCategory.rrn || 0) + 1;
         columnPIIMap.get(col)?.add("rrn");
         detectedPIIs.push({
           id: `pii-${rowIdx}-${col}-rrn`,
@@ -214,7 +225,7 @@ export function processDataSet(
       // 2. Phone Check
       if (enabledRulesMap.get("phone") && REGEX_PATTERNS.phone.test(cellValue)) {
         const masked = maskPhone(cellValue);
-        countsByCategory.phone++;
+        countsByCategory.phone = (countsByCategory.phone || 0) + 1;
         columnPIIMap.get(col)?.add("phone");
         detectedPIIs.push({
           id: `pii-${rowIdx}-${col}-phone`,
@@ -231,7 +242,7 @@ export function processDataSet(
       // 3. Email Check
       if (enabledRulesMap.get("email") && REGEX_PATTERNS.email.test(cellValue)) {
         const masked = maskEmail(cellValue);
-        countsByCategory.email++;
+        countsByCategory.email = (countsByCategory.email || 0) + 1;
         columnPIIMap.get(col)?.add("email");
         detectedPIIs.push({
           id: `pii-${rowIdx}-${col}-email`,
@@ -248,7 +259,7 @@ export function processDataSet(
       // 4. Address Check
       if (enabledRulesMap.get("address") && REGEX_PATTERNS.address.test(cellValue)) {
         const masked = maskAddress(cellValue);
-        countsByCategory.address++;
+        countsByCategory.address = (countsByCategory.address || 0) + 1;
         columnPIIMap.get(col)?.add("address");
         detectedPIIs.push({
           id: `pii-${rowIdx}-${col}-address`,
@@ -265,7 +276,7 @@ export function processDataSet(
       // 5. Driver License Check
       if (enabledRulesMap.get("driver_license") && REGEX_PATTERNS.driver_license.test(cellValue)) {
         const masked = maskDriverLicense(cellValue);
-        countsByCategory.driver_license++;
+        countsByCategory.driver_license = (countsByCategory.driver_license || 0) + 1;
         columnPIIMap.get(col)?.add("driver_license");
         detectedPIIs.push({
           id: `pii-${rowIdx}-${col}-driver`,
@@ -282,7 +293,7 @@ export function processDataSet(
       // 6. Bank Account Check
       if (enabledRulesMap.get("bank_account") && REGEX_PATTERNS.bank_account.test(cellValue)) {
         const masked = maskBankAccount(cellValue);
-        countsByCategory.bank_account++;
+        countsByCategory.bank_account = (countsByCategory.bank_account || 0) + 1;
         columnPIIMap.get(col)?.add("bank_account");
         detectedPIIs.push({
           id: `pii-${rowIdx}-${col}-bank`,
@@ -303,7 +314,7 @@ export function processDataSet(
         /^[가-힣]{2,4}$/.test(originalValue.trim())
       ) {
         const masked = maskKoreanName(originalValue);
-        countsByCategory.name++;
+        countsByCategory.name = (countsByCategory.name || 0) + 1;
         columnPIIMap.get(col)?.add("name");
         detectedPIIs.push({
           id: `pii-${rowIdx}-${col}-name`,
@@ -316,6 +327,34 @@ export function processDataSet(
         });
         cellValue = masked;
       }
+
+      // 8. Custom User-Defined Rules Check
+      customRules.forEach((cRule) => {
+        try {
+          const reg = new RegExp(cRule.regexPattern!, "g");
+          if (reg.test(cellValue)) {
+            const maskChar = cRule.maskingCharacter || "*";
+            const masked = cellValue.replace(new RegExp(cRule.regexPattern!, "g"), (match) => {
+              return maskChar.repeat(match.length);
+            });
+
+            countsByCategory[cRule.id] = (countsByCategory[cRule.id] || 0) + 1;
+            columnPIIMap.get(col)?.add(cRule.id);
+            detectedPIIs.push({
+              id: `pii-${rowIdx}-${col}-${cRule.id}`,
+              rowIdx,
+              colName: col,
+              category: cRule.id,
+              categoryName: cRule.name,
+              originalValue: cellValue,
+              maskedValue: masked,
+            });
+            cellValue = masked;
+          }
+        } catch (e) {
+          console.warn(`[Custom Rule Error] ${cRule.name}:`, e);
+        }
+      });
 
       maskedRow[col] = cellValue;
     });

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { ProcessedDataSet, ReportTemplate, GeneratedReport, MaskingRule } from "../types";
-import { DEFAULT_MASKING_RULES } from "../utils/maskingEngine";
+import { DEFAULT_MASKING_RULES, processDataSet } from "../utils/maskingEngine";
 
 export type WizardStep = 1 | 2 | 3 | 4;
 
@@ -20,6 +20,8 @@ interface ReportStoreState {
   setStep: (step: WizardStep) => void;
   setDataset: (dataset: ProcessedDataSet) => void;
   updateMaskingRule: (ruleId: string, enabled: boolean) => void;
+  addCustomMaskingRule: (newRule: Omit<MaskingRule, "id">) => void;
+  removeMaskingRule: (ruleId: string) => void;
   setSelectedTemplate: (template: ReportTemplate) => void;
   setCustomPrompt: (prompt: string) => void;
   setDepartmentName: (dept: string) => void;
@@ -30,14 +32,14 @@ interface ReportStoreState {
   resetWizard: () => void;
 }
 
-export const useReportStore = create<ReportStoreState>((set) => ({
+export const useReportStore = create<ReportStoreState>((set, get) => ({
   currentStep: 1,
   dataset: null,
   maskingRules: DEFAULT_MASKING_RULES,
   selectedTemplate: null,
   customPrompt: "",
-  departmentName: "행정안전부 디지털정부국",
-  authorName: "김행정 주무관",
+  departmentName: "부산광역시 디지털행정담당관",
+  authorName: "김부산 주무관",
   isGenerating: false,
   generatedReport: null,
   generationError: null,
@@ -46,12 +48,62 @@ export const useReportStore = create<ReportStoreState>((set) => ({
 
   setDataset: (dataset) => set({ dataset }),
 
-  updateMaskingRule: (ruleId, enabled) =>
-    set((state) => ({
-      maskingRules: state.maskingRules.map((rule) =>
-        rule.id === ruleId ? { ...rule, enabled } : rule
-      ),
-    })),
+  updateMaskingRule: (ruleId, enabled) => {
+    const updatedRules = get().maskingRules.map((rule) =>
+      rule.id === ruleId ? { ...rule, enabled } : rule
+    );
+    const currentDataset = get().dataset;
+    if (currentDataset && currentDataset.rawRows) {
+      const reprocessed = processDataSet(
+        currentDataset.rawRows,
+        currentDataset.fileName,
+        currentDataset.fileSize,
+        updatedRules
+      );
+      set({ maskingRules: updatedRules, dataset: reprocessed });
+    } else {
+      set({ maskingRules: updatedRules });
+    }
+  },
+
+  addCustomMaskingRule: (newRuleData) => {
+    const id = `custom_${Date.now()}`;
+    const newRule: MaskingRule = {
+      ...newRuleData,
+      id,
+      isCustom: true,
+      enabled: true,
+    };
+    const updatedRules = [...get().maskingRules, newRule];
+    const currentDataset = get().dataset;
+    if (currentDataset && currentDataset.rawRows) {
+      const reprocessed = processDataSet(
+        currentDataset.rawRows,
+        currentDataset.fileName,
+        currentDataset.fileSize,
+        updatedRules
+      );
+      set({ maskingRules: updatedRules, dataset: reprocessed });
+    } else {
+      set({ maskingRules: updatedRules });
+    }
+  },
+
+  removeMaskingRule: (ruleId) => {
+    const updatedRules = get().maskingRules.filter((r) => r.id !== ruleId);
+    const currentDataset = get().dataset;
+    if (currentDataset && currentDataset.rawRows) {
+      const reprocessed = processDataSet(
+        currentDataset.rawRows,
+        currentDataset.fileName,
+        currentDataset.fileSize,
+        updatedRules
+      );
+      set({ maskingRules: updatedRules, dataset: reprocessed });
+    } else {
+      set({ maskingRules: updatedRules });
+    }
+  },
 
   setSelectedTemplate: (template) => set({ selectedTemplate: template }),
 
